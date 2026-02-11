@@ -1,1 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fangirl Photobooth</title>
+<link rel="stylesheet" href="style.css"/>
+</head>
+<body>
 
+<div id="intro">
+  <img src="intro.png"/>
+  <button id="enterBtn">enter →</button>
+</div>
+
+<div id="booth" hidden>
+  <video id="video" autoplay playsinline></video>
+
+  <div id="overlay">
+    <img id="frame" src="frames/frame-cream.png"/>
+  </div>
+
+  <div id="countdown"></div>
+
+  <div id="controls">
+    <div id="colors">
+      <span class="star" data-frame="frame-cream.png">★</span>
+      <span class="star" data-frame="frame-blue.png">★</span>
+      <span class="star" data-frame="frame-burgundy.png">★</span>
+    </div>
+    <button id="snap">Take Strip</button>
+  </div>
+
+  <canvas id="canvas" hidden></canvas>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
