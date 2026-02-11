@@ -2,12 +2,222 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Runarounds Fan Photo Booth</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Runarounds Fan Photo Booth</title>
+
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #0f0f14;
+  color: white;
+  display: flex;
+  justify-content: center;
+}
+.app {
+  width: 100%;
+  max-width: 420px;
+  padding: 12px;
+}
+header {
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: .08em;
+  margin-bottom: 8px;
+}
+.camera {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3/4;
+  border-radius: 16px;
+  overflow: hidden;
+  background: black;
+}
+video, canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#countdown {
+  position:absolute;
+  inset:0;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  font-size:72px;
+  font-weight:800;
+  background:rgba(0,0,0,.3);
+  z-index:5;
+}
+.controls {
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin-top:12px;
+}
+button {
+  border:none;
+  border-radius:999px;
+  padding:12px 18px;
+  font-weight:600;
+}
+.filters, .colors {
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:6px;
+  margin-top:12px;
+}
+.filter {
+  padding:6px 10px;
+  background:#2a2a35;
+  border-radius:999px;
+  font-size:14px;
+}
+.star {
+  font-size:26px;
+  opacity:.4;
+}
+.star.active { opacity:1; }
+.strip {
+  position:relative;
+  margin-top:16px;
+}
+.strip img {
+  width:100%;
+  border-radius:12px;
+}
+#stickers {
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  margin-top:10px;
+}
+.sticker {
+  position:absolute;
+  font-size:40px;
+  touch-action:none;
+  user-select:none;
+}
+</style>
 </head>
+
 <body>
-  <h1>Runarounds Fan Photo Booth</h1>
-  <p>This is your folder starter. Replace this file with your full photobooth code.</p>
+<div class="app">
+<header>FAN PHOTO BOOTH</header>
+
+<div class="camera">
+<div id="countdown">3</div>
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas"></canvas>
+</div>
+
+<div class="controls">
+<button id="snap">Take Photo</button>
+<button id="download">Download</button>
+</div>
+
+<div class="filters">
+<div class="filter" data-filter="none">downtown</div>
+<div class="filter" data-filter="grayscale(1)">arrhythmia</div>
+<div class="filter" data-filter="sepia(1)">15 rootbeers</div>
+<div class="filter" data-filter="contrast(1.4)">senior year</div>
+<div class="filter" data-filter="brightness(1.2)">funny how the universe works</div>
+<div class="filter" data-filter="killed">killed my youth (limited)</div>
+</div>
+
+<div class="colors" id="colors"></div>
+
+<div class="strip" id="strip"></div>
+<div id="stickers"></div>
+</div>
+
+<script>
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const snapBtn = document.getElementById('snap');
+const downloadBtn = document.getElementById('download');
+const strip = document.getElementById('strip');
+const countdown = document.getElementById('countdown');
+let shots = [];
+let filter = 'none';
+let stripColor = '#fff';
+
+navigator.mediaDevices.getUserMedia({ video:{facingMode:'user'} })
+.then(s=>video.srcObject=s);
+
+const colors = ['#fff','#f7f1e8','#f4c2d7','#d6c7f5','#8fe3c3','#b7d8c6','#b9d7f5','#9ecbf7','#4f78a6','#1e2a44','#3a2417','#6b1f2b','#111'];
+const colorWrap = document.getElementById('colors');
+colors.forEach(c=>{
+  const s=document.createElement('div');
+  s.textContent='★';
+  s.className='star';
+  s.style.color=c;
+  s.onclick=()=>{stripColor=c;document.querySelectorAll('.star').forEach(x=>x.classList.remove('active'));s.classList.add('active');};
+  colorWrap.appendChild(s);
+});
+
+document.querySelectorAll('.filter').forEach(f=>{
+  f.onclick=()=>{
+    filter=f.dataset.filter;
+    video.style.filter = filter==='killed'?'grayscale(.6) contrast(1.1)':'none';
+    if(filter!=='killed') video.style.filter=filter;
+  };
+});
+
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+
+snapBtn.onclick=async()=>{
+  shots=[]; strip.innerHTML='';
+  for(let i=0;i<4;i++){
+    countdown.style.display='flex';
+    countdown.textContent=3-i;
+    await sleep(700);
+    countdown.style.display='none';
+    canvas.width=video.videoWidth;
+    canvas.height=video.videoHeight;
+    ctx.filter=filter==='killed'?'grayscale(.6) contrast(1.1)':filter;
+    ctx.drawImage(video,0,0);
+    shots.push(canvas.toDataURL());
+  }
+  buildStrip();
+};
+
+function buildStrip(){
+  const sc=document.createElement('canvas');
+  const sctx=sc.getContext('2d');
+  const imgs=shots.map(src=>{let i=new Image();i.src=src;return i;});
+  imgs[0].onload=()=>{
+    const w=imgs[0].width,h=imgs[0].height,g=20;
+    sc.width=w;
+    sc.height=h*4+g*5+120;
+    sctx.fillStyle=stripColor;
+    sctx.fillRect(0,0,sc.width,sc.height);
+    imgs.forEach((img,i)=>sctx.drawImage(img,0,g+(h+g)*i));
+    sctx.fillStyle=stripColor==='#fff'?'#111':'#fff';
+    sctx.textAlign='center';
+    sctx.font='18px monospace';
+    sctx.fillText('i went to the runarounds tour',w/2,sc.height-50);
+    canvas.width=sc.width;canvas.height=sc.height;
+    ctx.drawImage(sc,0,0);
+    const img=document.createElement('img');
+    img.src=canvas.toDataURL();
+    strip.appendChild(img);
+  };
+}
+
+downloadBtn.onclick=()=>{
+  const a=document.createElement('a');
+  a.download='runarounds-strip.png';
+  a.href=canvas.toDataURL();
+  a.click();
+};
+</script>
 </body>
 </html>
+
