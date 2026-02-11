@@ -106,6 +106,12 @@
       <button id="snap" class="secondary">Take Photo</button>
     </div>
 
+    <div class="frames">
+      <div class="filter" data-frame="strip">4‑Photo Strip</div>
+      <div class="filter" data-frame="grid">2×2 Grid</div>
+      <div class="filter" data-frame="single">Single Photo</div>
+    </div>
+
     <div class="filters">
       <div class="filter" data-filter="none">downtown</div>
       <div class="filter" data-filter="grayscale(1)">arrhythmia</div>
@@ -155,6 +161,7 @@
     let stream = null;
     let currentFilter = 'none';
     let shots = [];
+    let selectedFrame = 'strip';
     const MAX_SHOTS = 4;
 
     async function enableCamera() {
@@ -180,6 +187,15 @@
     enableBtn.addEventListener('click', enableCamera);
 
     document.querySelectorAll('.filter').forEach(btn => {
+      if (btn.dataset.frame) {
+        btn.addEventListener('click', () => {
+          selectedFrame = btn.dataset.frame;
+          shots = [];
+          document.querySelectorAll('.filter').forEach(b=>b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+        return;
+      }(btn => {
       btn.addEventListener('click', () => {
         const f = btn.dataset.filter;
         if (f === 'killed') {
@@ -220,6 +236,16 @@
 
     // Safety: stop camera when leaving page
     function renderStrip() {
+      if (selectedFrame === 'single') {
+        downloadImage(shots[0]);
+        shots = [];
+        return;
+      }
+
+      if (selectedFrame === 'grid') {
+        renderGrid();
+        return;
+      }
       const strip = document.createElement('canvas');
       const sw = canvas.width;
       const sh = canvas.height;
