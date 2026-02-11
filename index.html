@@ -28,7 +28,7 @@
     .camera {
       position: relative;
       width: 100%;
-      max-width: 340px; /* smaller camera */
+      max-width: 320px;
       margin: 0 auto;
       aspect-ratio: 3 / 4;
       background: #000;
@@ -42,27 +42,13 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transform: scaleX(-1); /* mirror camera */
+      transform: scaleX(-1);
     }
-    .countdown{
-      position:absolute;
-      inset:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:72px;
-      font-weight:900;
-      z-index:6;
-      background:rgba(0,0,0,.35);
-      opacity:0;
-      pointer-events:none;
-      transition:opacity .2s ease;
+    #grain {
+      pointer-events: none;
+      mix-blend-mode: overlay;
+      opacity: .35;
     }
-    .countdown.show{opacity:1;}
-    .countdown span{
-      font-size:64px;
-    }
-
     .hint {
       position:absolute;
       inset:0;
@@ -82,7 +68,6 @@
       margin:14px 0 8px;
     }
     button {
-      appearance:none;
       border:none;
       border-radius:999px;
       padding:12px 16px;
@@ -91,81 +76,37 @@
     }
     .primary { background:#fff; color:#000; }
     .secondary { background:#232330; color:#fff; }
-    .frames{
+    .frames {
       display:flex;
-      justify-content:center;
-      gap:14px;
-      margin:6px 0 10px;
-    }
-    .frame-option{
-      text-align:center;
-      cursor:pointer;
-      opacity:.75;
-    }
-    .frame-option.active{opacity:1;}
-    .thumb{
-      width:58px;
-      height:78px;
-      background:#1b1b25;
-      border-radius:8px;
-      display:grid;
-      gap:4px;
-      padding:6px;
-      margin-bottom:4px;
-    }
-    .strip-thumb{grid-template-rows:repeat(4,1fr);}
-    .grid-thumb{grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);}
-    .single-thumb{display:block;}
-    .thumb span{
-      background:#2c2c3a;
-      border-radius:4px;
-    }
-
-    .frame-colors{
-      display:flex;
-      justify-content:center;
       gap:12px;
-      margin:10px 0 6px;
-    }
-    .color-star{
-      width:26px;
-      height:26px;
-      clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
-      background:#fff;
-      cursor:pointer;
-      border:2px solid #fff;
-    }
-    .color-star.polka{
-      background-color:#2b1b14;
-      background-image: radial-gradient(#9adbc5 2px, transparent 2px);
-      background-size:10px 10px;
-    }
-
-    .filters {
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
+      overflow-x:auto;
+      padding:10px 0;
       justify-content:center;
-      margin-top:8px;
     }
-    .filter {
-      background:#232330;
-      color:#fff;
-      border-radius:999px;
-      padding:8px 12px;
-      font-size:13px;
+    .frames img {
+      height:120px;
+      border-radius:10px;
+      opacity:.6;
       cursor:pointer;
-      white-space:nowrap;
+    }
+    .frames img.active {
+      opacity:1;
+      outline:2px solid #fff;
     }
   </style>
 </head>
 <body>
-  <div class="app">
+  <!-- INTRO SCREEN -->
+  <div id="intro" class="intro">
+    <img src="intro-booth.png" alt="Fangirl Photo Booth" class="intro-img" />
+    <button id="enterBooth" class="enter-btn">ENTER →</button>
+  </div>
+
+  <!-- APP -->
+  <div class="app" id="app" style="display:none;">
     <header style="margin-bottom:12px;">FAN PHOTO BOOTH</header>
 
     <div class="camera">
-      <div id="countdown" class="countdown">3</div>
-      <!-- IMPORTANT FOR iOS -->
       <video id="video" playsinline muted autoplay></video>
       <canvas id="canvas"></canvas>
       <div id="hint" class="hint">Tap “Enable Camera” to start</div>
@@ -174,39 +115,6 @@
     <div class="controls">
       <button id="enable" class="primary">Enable Camera</button>
       <button id="snap" class="secondary">Take Photo</button>
-    </div>
-
-    <div class="frames">
-      <div class="frame-option active" data-frame="strip">
-        <div class="thumb strip-thumb">
-          <span></span><span></span><span></span><span></span>
-        </div>
-        <div class="label">4‑Photo Strip</div>
-      </div>
-      <div class="frame-option" data-frame="grid">
-        <div class="thumb grid-thumb">
-          <span></span><span></span><span></span><span></span>
-        </div>
-        <div class="label">2×2 Grid</div>
-      </div>
-      <div class="frame-option" data-frame="single">
-        <div class="thumb single-thumb"></div>
-        <div class="label">Single</div>
-      </div>
-    </div>
-      <div class="filter" data-frame="grid">2×2 Grid</div>
-      <div class="filter" data-frame="single">Single Photo</div>
-    </div>
-
-    <div class="frame-colors">
-      <div class="color-star" data-bg="#7b1e3a" title="Cherry Wine"></div>
-      <div class="color-star" data-bg="#1e3a5f" title="Deep Blue"></div>
-      <div class="color-star" data-bg="#f3efe6" title="Vintage White"></div>
-      <div class="color-star polka" data-bg="#2b1b14" data-dot="#9adbc5" title="Polka Dot"></div>
-    </div>
-      <div class="filter" data-frame="strip">4‑Photo Strip</div>
-      <div class="filter" data-frame="grid">2×2 Grid</div>
-      <div class="filter" data-frame="single">Single Photo</div>
     </div>
 
     <div class="filters">
@@ -220,215 +128,56 @@
   </div>
 
   <script>
-    // ===== iOS-SAFE CAMERA BOOTSTRAP =====
+    const intro = document.getElementById('intro');
+    const app = document.getElementById('app');
+    document.getElementById('enterBooth').addEventListener('click', () => {
+      intro.style.display = 'none';
+      app.style.display = 'block';
+    });
+
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-
-    // ===== FILM EFFECTS =====
-    function applyGrain(ctx, w, h, intensity = 12) {
-      const imageData = ctx.getImageData(0, 0, w, h);
-      for (let i = 0; i < imageData.data.length; i += 4) {
-        const noise = (Math.random() - 0.5) * intensity;
-        imageData.data[i] += noise;
-        imageData.data[i + 1] += noise;
-        imageData.data[i + 2] += noise;
-      }
-      ctx.putImageData(imageData, 0, 0);
-    }
-
-    function applyScratches(ctx, w, h, amount = 6) {
-      ctx.save();
-      ctx.globalAlpha = 0.08;
-      ctx.strokeStyle = '#fff';
-      for (let i = 0; i < amount; i++) {
-        const x = Math.random() * w;
-        ctx.lineWidth = Math.random() * 1.2 + 0.3;
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x + Math.random() * 2 - 1, h);
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
     const hint = document.getElementById('hint');
     const enableBtn = document.getElementById('enable');
     const snapBtn = document.getElementById('snap');
 
     let stream = null;
     let currentFilter = 'none';
-    let shots = [];
-    let isCountingDown = false;
-    const countdownIcons = ['★','🎸','🥁'];
-    let selectedFrame = 'strip';
-    let frameBackground = '#000';
-    const MAX_SHOTS = 4;
 
     async function enableCamera() {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'user',
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          },
-          audio: false
-        });
-
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
         video.srcObject = stream;
-        await video.play(); // REQUIRED on iOS
+        await video.play();
         hint.style.display = 'none';
-      } catch (err) {
-        hint.textContent = 'Camera blocked. Check Safari > Camera permissions.';
-        console.error(err);
+      } catch (e) {
+        hint.textContent = 'Camera blocked.';
       }
     }
 
-    enableBtn.addEventListener('click', async () => {
-      // Always allow manual re-enable (iOS Safari safe)
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
-        stream = null;
-      }
-      await enableCamera();
-    });
-
-    document.querySelectorAll('.frame-option').forEach(opt=>{
-      opt.addEventListener('click',()=>{
-        selectedFrame = opt.dataset.frame;
-        shots = [];
-        document.querySelectorAll('.frame-option').forEach(o=>o.classList.remove('active'));
-        opt.classList.add('active');
-      });
-    });
+    enableBtn.addEventListener('click', enableCamera);
 
     document.querySelectorAll('.filter').forEach(btn => {
-      if (btn.dataset.frame) {
-        btn.addEventListener('click', () => {
-          selectedFrame = btn.dataset.frame;
-          shots = [];
-          document.querySelectorAll('.filter').forEach(b=>b.classList.remove('active'));
-          btn.classList.add('active');
-        });
-        return;
-      }(btn => {
       btn.addEventListener('click', () => {
         const f = btn.dataset.filter;
-        if (f === 'killed') {
-          currentFilter = 'grayscale(0.6) contrast(1.15) brightness(0.95)';
-        } else {
-          currentFilter = f;
-        }
+        currentFilter = f === 'killed'
+          ? 'grayscale(0.7) contrast(1.25) brightness(0.9)'
+          : f;
         video.style.filter = currentFilter === 'none' ? 'none' : currentFilter;
       });
     });
 
-    snapBtn.addEventListener('click', async () => {
-      if (!video.videoWidth || isCountingDown) return;
-      isCountingDown = true;
-
-      await runCountdown();
-
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      ctx.filter = currentFilter === 'none' ? 'none' : currentFilter;
-      ctx.drawImage(video, 0, 0);
-
-      applyGrain(ctx, canvas.width, canvas.height, currentFilter.includes('grayscale') ? 22 : 14);
-      applyScratches(ctx, canvas.width, canvas.height, currentFilter.includes('grayscale') ? 8 : 4);
-
-      shots.push(canvas.toDataURL('image/png'));
-
-      if (shots.length === MAX_SHOTS) {
-        renderStrip();
-      }
-      isCountingDown = false;
-    });('click', () => {
+    snapBtn.addEventListener('click', () => {
       if (!video.videoWidth) return;
-
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-
       ctx.filter = currentFilter === 'none' ? 'none' : currentFilter;
       ctx.drawImage(video, 0, 0);
-
-      applyGrain(ctx, canvas.width, canvas.height, currentFilter.includes('grayscale') ? 22 : 14);
-      applyScratches(ctx, canvas.width, canvas.height, currentFilter.includes('grayscale') ? 8 : 4);
-
-      shots.push(canvas.toDataURL('image/png'));
-
-      if (shots.length === MAX_SHOTS) {
-        renderStrip();
-      }
-    });
-      applyGrain(ctx, canvas.width, canvas.height, currentFilter.includes('grayscale') ? 22 : 14);
-      applyScratches(ctx, canvas.width, canvas.height, currentFilter.includes('grayscale') ? 8 : 4);
-
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/png');
       a.download = 'runarounds-photo.png';
       a.click();
-    });
-
-    // Safety: stop camera when leaving page
-    async function runCountdown(){
-      const cd = document.getElementById('countdown');
-      for(let i=3;i>0;i--){
-        const icon = countdownIcons[Math.floor(Math.random()*countdownIcons.length)];
-        cd.innerHTML = i===1 ? `<span>${icon}</span>` : i;
-        cd.classList.add('show');
-        await new Promise(r=>setTimeout(r,600));
-        cd.classList.remove('show');
-        await new Promise(r=>setTimeout(r,200));
-      }
-    }
-
-    function renderStrip() {() {
-      if (selectedFrame === 'single') {
-        downloadImage(shots[0]);
-        shots = [];
-        return;
-      }
-
-      if (selectedFrame === 'grid') {
-        renderGrid();
-        return;
-      }
-      const strip = document.createElement('canvas');
-      const sw = canvas.width;
-      const sh = canvas.height;
-      strip.width = sw;
-      strip.height = sh * MAX_SHOTS;
-      sctx.fillStyle = frameBackground;
-      sctx.fillRect(0,0,strip.width,strip.height);
-      const sctx = strip.getContext('2d');
-
-      shots.forEach((src, i) => {
-        const img = new Image();
-        img.onload = () => {
-          sctx.drawImage(img, 0, sh * i, sw, sh);
-          if (i === shots.length - 1) {
-            const a = document.createElement('a');
-            a.href = strip.toDataURL('image/png');
-            a.download = 'runarounds-strip.png';
-            a.click();
-            shots = [];
-          }
-        };
-        img.src = src;
-      });
-    }
-
-    document.querySelectorAll('.color-star').forEach(star=>{
-      star.addEventListener('click',()=>{
-        frameBackground = star.dataset.bg;
-      });
-    });
-
-    window.addEventListener('pagehide', () => {
-      if (stream) stream.getTracks().forEach(t => t.stop());
-    });
     });
   </script>
 </body>
