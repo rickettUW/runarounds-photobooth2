@@ -44,6 +44,25 @@
       object-fit: cover;
       transform: scaleX(-1); /* mirror camera */
     }
+    .countdown{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:72px;
+      font-weight:900;
+      z-index:6;
+      background:rgba(0,0,0,.35);
+      opacity:0;
+      pointer-events:none;
+      transition:opacity .2s ease;
+    }
+    .countdown.show{opacity:1;}
+    .countdown span{
+      font-size:64px;
+    }
+
     .hint {
       position:absolute;
       inset:0;
@@ -72,6 +91,56 @@
     }
     .primary { background:#fff; color:#000; }
     .secondary { background:#232330; color:#fff; }
+    .frames{
+      display:flex;
+      justify-content:center;
+      gap:14px;
+      margin:6px 0 10px;
+    }
+    .frame-option{
+      text-align:center;
+      cursor:pointer;
+      opacity:.75;
+    }
+    .frame-option.active{opacity:1;}
+    .thumb{
+      width:58px;
+      height:78px;
+      background:#1b1b25;
+      border-radius:8px;
+      display:grid;
+      gap:4px;
+      padding:6px;
+      margin-bottom:4px;
+    }
+    .strip-thumb{grid-template-rows:repeat(4,1fr);}
+    .grid-thumb{grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr);}
+    .single-thumb{display:block;}
+    .thumb span{
+      background:#2c2c3a;
+      border-radius:4px;
+    }
+
+    .frame-colors{
+      display:flex;
+      justify-content:center;
+      gap:12px;
+      margin:10px 0 6px;
+    }
+    .color-star{
+      width:26px;
+      height:26px;
+      clip-path: polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);
+      background:#fff;
+      cursor:pointer;
+      border:2px solid #fff;
+    }
+    .color-star.polka{
+      background-color:#2b1b14;
+      background-image: radial-gradient(#9adbc5 2px, transparent 2px);
+      background-size:10px 10px;
+    }
+
     .filters {
       display:flex;
       gap:8px;
@@ -95,6 +164,7 @@
     <header style="margin-bottom:12px;">FAN PHOTO BOOTH</header>
 
     <div class="camera">
+      <div id="countdown" class="countdown">3</div>
       <!-- IMPORTANT FOR iOS -->
       <video id="video" playsinline muted autoplay></video>
       <canvas id="canvas"></canvas>
@@ -107,6 +177,33 @@
     </div>
 
     <div class="frames">
+      <div class="frame-option active" data-frame="strip">
+        <div class="thumb strip-thumb">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="label">4‑Photo Strip</div>
+      </div>
+      <div class="frame-option" data-frame="grid">
+        <div class="thumb grid-thumb">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="label">2×2 Grid</div>
+      </div>
+      <div class="frame-option" data-frame="single">
+        <div class="thumb single-thumb"></div>
+        <div class="label">Single</div>
+      </div>
+    </div>
+      <div class="filter" data-frame="grid">2×2 Grid</div>
+      <div class="filter" data-frame="single">Single Photo</div>
+    </div>
+
+    <div class="frame-colors">
+      <div class="color-star" data-bg="#7b1e3a" title="Cherry Wine"></div>
+      <div class="color-star" data-bg="#1e3a5f" title="Deep Blue"></div>
+      <div class="color-star" data-bg="#f3efe6" title="Vintage White"></div>
+      <div class="color-star polka" data-bg="#2b1b14" data-dot="#9adbc5" title="Polka Dot"></div>
+    </div>
       <div class="filter" data-frame="strip">4‑Photo Strip</div>
       <div class="filter" data-frame="grid">2×2 Grid</div>
       <div class="filter" data-frame="single">Single Photo</div>
@@ -161,7 +258,10 @@
     let stream = null;
     let currentFilter = 'none';
     let shots = [];
+    let isCountingDown = false;
+    const countdownIcons = ['★','🎸','🥁'];
     let selectedFrame = 'strip';
+    let frameBackground = '#000';
     const MAX_SHOTS = 4;
 
     async function enableCamera() {
@@ -184,7 +284,23 @@
       }
     }
 
-    enableBtn.addEventListener('click', enableCamera);
+    enableBtn.addEventListener('click', async () => {
+      // Always allow manual re-enable (iOS Safari safe)
+      if (stream) {
+        stream.getTracks().forEach(t => t.stop());
+        stream = null;
+      }
+      await enableCamera();
+    });
+
+    document.querySelectorAll('.frame-option').forEach(opt=>{
+      opt.addEventListener('click',()=>{
+        selectedFrame = opt.dataset.frame;
+        shots = [];
+        document.querySelectorAll('.frame-option').forEach(o=>o.classList.remove('active'));
+        opt.classList.add('active');
+      });
+    });
 
     document.querySelectorAll('.filter').forEach(btn => {
       if (btn.dataset.frame) {
@@ -207,7 +323,28 @@
       });
     });
 
-    snapBtn.addEventListener('click', () => {
+    snapBtn.addEventListener('click', async () => {
+      if (!video.videoWidth || isCountingDown) return;
+      isCountingDown = true;
+
+      await runCountdown();
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+
+      ctx.filter = currentFilter === 'none' ? 'none' : currentFilter;
+      ctx.drawImage(video, 0, 0);
+
+      applyGrain(ctx, canvas.width, canvas.height, currentFilter.includes('grayscale') ? 22 : 14);
+      applyScratches(ctx, canvas.width, canvas.height, currentFilter.includes('grayscale') ? 8 : 4);
+
+      shots.push(canvas.toDataURL('image/png'));
+
+      if (shots.length === MAX_SHOTS) {
+        renderStrip();
+      }
+      isCountingDown = false;
+    });('click', () => {
       if (!video.videoWidth) return;
 
       canvas.width = video.videoWidth;
@@ -235,7 +372,19 @@
     });
 
     // Safety: stop camera when leaving page
-    function renderStrip() {
+    async function runCountdown(){
+      const cd = document.getElementById('countdown');
+      for(let i=3;i>0;i--){
+        const icon = countdownIcons[Math.floor(Math.random()*countdownIcons.length)];
+        cd.innerHTML = i===1 ? `<span>${icon}</span>` : i;
+        cd.classList.add('show');
+        await new Promise(r=>setTimeout(r,600));
+        cd.classList.remove('show');
+        await new Promise(r=>setTimeout(r,200));
+      }
+    }
+
+    function renderStrip() {() {
       if (selectedFrame === 'single') {
         downloadImage(shots[0]);
         shots = [];
@@ -251,6 +400,8 @@
       const sh = canvas.height;
       strip.width = sw;
       strip.height = sh * MAX_SHOTS;
+      sctx.fillStyle = frameBackground;
+      sctx.fillRect(0,0,strip.width,strip.height);
       const sctx = strip.getContext('2d');
 
       shots.forEach((src, i) => {
@@ -268,6 +419,12 @@
         img.src = src;
       });
     }
+
+    document.querySelectorAll('.color-star').forEach(star=>{
+      star.addEventListener('click',()=>{
+        frameBackground = star.dataset.bg;
+      });
+    });
 
     window.addEventListener('pagehide', () => {
       if (stream) stream.getTracks().forEach(t => t.stop());
