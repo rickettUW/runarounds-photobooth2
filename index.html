@@ -1,184 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Runarounds Fan Photo Booth</title>
-  <style>
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0b0b10;
-      color: #fff;
-      display: flex;
-      justify-content: center;
-    }
-    .app {
-      width: 100%;
-      max-width: 430px;
-      padding: 14px 14px 22px;
-    }
-    header {
-      text-align: center;
-      font-weight: 800;
-      letter-spacing: .14em;
-      margin: 10px 0 14px;
-    }
-    .camera {
-      position: relative;
-      width: 100%;
-      max-width: 320px;
-      margin: 0 auto;
-      aspect-ratio: 3 / 4;
-      background: #000;
-      border-radius: 22px;
-      overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.45);
-    }
-    video, canvas {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transform: scaleX(-1);
-    }
-    #grain {
-      pointer-events: none;
-      mix-blend-mode: overlay;
-      opacity: .35;
-    }
-    .hint {
-      position:absolute;
-      inset:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      text-align:center;
-      padding:18px;
-      background:rgba(0,0,0,.55);
-      font-weight:600;
-      z-index:4;
-    }
-    .controls {
-      display:flex;
-      gap:10px;
-      justify-content:center;
-      margin:14px 0 8px;
-    }
-    button {
-      border:none;
-      border-radius:999px;
-      padding:12px 16px;
-      font-weight:700;
-      cursor:pointer;
-    }
-    .primary { background:#fff; color:#000; }
-    .secondary { background:#232330; color:#fff; }
-    .frames {
-      display:flex;
-      gap:12px;
-      overflow-x:auto;
-      padding:10px 0;
-      justify-content:center;
-    }
-    .frames img {
-      height:120px;
-      border-radius:10px;
-      opacity:.6;
-      cursor:pointer;
-    }
-    .frames img.active {
-      opacity:1;
-      outline:2px solid #fff;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fangirl Photo Booth</title>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: #0b0b10;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  overflow: hidden;
+}
+
+/* CAMERA WRAPPER */
+.app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* CAMERA VIEW */
+.camera {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background: black;
+}
+
+/* VIDEO */
+video, canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1); /* mirror */
+}
+
+/* OVERLAYS */
+.overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.grain {
+  background: url("assets/grain.png") repeat;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+}
+
+.scratches {
+  background: url("assets/scratches.png") repeat;
+  opacity: 0.12;
+}
+
+.stars {
+  background: url("assets/stars.png") repeat;
+  opacity: 0.35;
+}
+
+/* COUNTDOWN ICON */
+.countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 88px;
+  color: white;
+  font-weight: 800;
+  text-shadow: 0 0 20px rgba(255,255,255,.6);
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+
+/* CONTROLS */
+.controls {
+  padding: 14px;
+  background: rgba(0,0,0,.6);
+  display: flex;
+  justify-content: center;
+}
+
+button {
+  appearance: none;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 22px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.snap {
+  background: white;
+  color: black;
+}
+</style>
 </head>
+
 <body>
-  <!-- INTRO SCREEN -->
-  <div id="intro" class="intro">
-    <img src="intro-booth.png" alt="Fangirl Photo Booth" class="intro-img" />
-    <button id="enterBooth" class="enter-btn">ENTER →</button>
+<div class="app">
+
+  <div class="camera">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas"></canvas>
+
+    <!-- EFFECT OVERLAYS -->
+    <div class="overlay grain"></div>
+    <div class="overlay scratches"></div>
+    <div class="overlay stars"></div>
+
+    <!-- COUNTDOWN -->
+    <div id="countdown" class="countdown">⭐</div>
   </div>
 
-  <!-- APP -->
-  <div class="app" id="app" style="display:none;">
-    <header style="margin-bottom:12px;">FAN PHOTO BOOTH</header>
-
-    <div class="camera">
-      <video id="video" playsinline muted autoplay></video>
-      <canvas id="canvas"></canvas>
-      <div id="hint" class="hint">Tap “Enable Camera” to start</div>
-    </div>
-
-    <div class="controls">
-      <button id="enable" class="primary">Enable Camera</button>
-      <button id="snap" class="secondary">Take Photo</button>
-    </div>
-
-    <div class="filters">
-      <div class="filter" data-filter="none">downtown</div>
-      <div class="filter" data-filter="grayscale(1)">arrhythmia</div>
-      <div class="filter" data-filter="sepia(1)">15 rootbeers</div>
-      <div class="filter" data-filter="contrast(1.35)">senior year</div>
-      <div class="filter" data-filter="brightness(1.15)">funny how the universe works</div>
-      <div class="filter" data-filter="killed">killed my youth (limited)</div>
-    </div>
+  <div class="controls">
+    <button class="snap" id="snap">Take Photo</button>
   </div>
 
-  <script>
-    const intro = document.getElementById('intro');
-    const app = document.getElementById('app');
-    document.getElementById('enterBooth').addEventListener('click', () => {
-      intro.style.display = 'none';
-      app.style.display = 'block';
-    });
+</div>
 
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const hint = document.getElementById('hint');
-    const enableBtn = document.getElementById('enable');
-    const snapBtn = document.getElementById('snap');
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const countdownEl = document.getElementById("countdown");
 
-    let stream = null;
-    let currentFilter = 'none';
+let stream;
 
-    async function enableCamera() {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-        video.srcObject = stream;
-        await video.play();
-        hint.style.display = 'none';
-      } catch (e) {
-        hint.textContent = 'Camera blocked.';
-      }
+/* ENABLE CAMERA IMMEDIATELY */
+async function startCamera() {
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode: "user" },
+    audio: false
+  });
+  video.srcObject = stream;
+}
+startCamera();
+
+/* COUNTDOWN ICON SEQUENCE */
+const icons = ["⭐", "🎸", "🥁", "📸"];
+
+function showCountdown() {
+  return new Promise(async (resolve) => {
+    for (let i = 0; i < icons.length; i++) {
+      countdownEl.textContent = icons[i];
+      countdownEl.style.opacity = 1;
+      await new Promise(r => setTimeout(r, 700));
+      countdownEl.style.opacity = 0;
+      await new Promise(r => setTimeout(r, 200));
     }
+    resolve();
+  });
+}
 
-    enableBtn.addEventListener('click', enableCamera);
+/* TAKE PHOTO */
+document.getElementById("snap").onclick = async () => {
+  if (!video.videoWidth) return;
 
-    document.querySelectorAll('.filter').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const f = btn.dataset.filter;
-        currentFilter = f === 'killed'
-          ? 'grayscale(0.7) contrast(1.25) brightness(0.9)'
-          : f;
-        video.style.filter = currentFilter === 'none' ? 'none' : currentFilter;
-      });
-    });
+  await showCountdown();
 
-    snapBtn.addEventListener('click', () => {
-      if (!video.videoWidth) return;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.filter = currentFilter === 'none' ? 'none' : currentFilter;
-      ctx.drawImage(video, 0, 0);
-      const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
-      a.download = 'runarounds-photo.png';
-      a.click();
-    });
-  </script>
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.filter = "grayscale(1) contrast(1.2)";
+  ctx.drawImage(video, 0, 0);
+
+  const link = document.createElement("a");
+  link.download = "fangirl-photo.png";
+  link.href = canvas.toDataURL("image/png");
+  link.click();
+};
+
+/* CLEANUP */
+window.addEventListener("pagehide", () => {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+});
+</script>
 </body>
 </html>
