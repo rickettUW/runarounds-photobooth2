@@ -184,3 +184,53 @@ window.addEventListener("pagehide", () => {
 </script>
 </body>
 </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Fangirl Photo Booth</title>
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: white;
+}
+
+/* FULL SCREEN INTRO */
+.intro {
+  position: fixed;
+  inset: 0;
+  background: url("assets/intro.png") center center / contain no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* CLICKABLE ENTER AREA */
+.enter {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 18px 30px;
+  font-size: 20px;
+  font-weight: 700;
+  background: white;
+  border: 2px solid black;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+  <div class="intro">
+    <div class="enter" onclick="location.href='camera.html'">
+      enter →
+    </div>
+  </div>
+</body>
+</html>
+
