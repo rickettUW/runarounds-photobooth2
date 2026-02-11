@@ -1,200 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Runarounds Fan Photo Booth</title>
-
-<style>
-*{box-sizing:border-box}
-body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#0f0f14;color:#fff;display:flex;justify-content:center}
-.app{width:100%;max-width:420px;padding:12px}
-header{text-align:center;font-weight:800;letter-spacing:.08em;margin-bottom:8px}
-.camera{position:relative;width:100%;aspect-ratio:3/4;border-radius:16px;overflow:hidden;background:#000}
-video,canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-#countdown{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:72px;font-weight:800;background:rgba(0,0,0,.3);z-index:5}
-.controls{display:flex;justify-content:center;gap:10px;margin-top:12px}
-button{border:none;border-radius:999px;padding:12px 18px;font-weight:600}
-.filters,.colors{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:12px}
-.filter{padding:6px 10px;background:#2a2a35;border-radius:999px;font-size:14px}
-.star{font-size:26px;opacity:.4;cursor:pointer}
-.star.active{opacity:1}
-.strip{position:relative;margin-top:16px}
-.strip img{width:100%;border-radius:12px}
-#editLayer{position:absolute;inset:0;pointer-events:none}
-.sticker{position:absolute;touch-action:none;user-select:none;pointer-events:auto}
-#stickerTray{display:flex;gap:10px;justify-content:center;margin-top:10px;flex-wrap:wrap}
-#stickerTray img{width:48px;height:48px;cursor:pointer}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Runarounds Fan Photo Booth</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0b0b10;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+    }
+    .app {
+      width: 100%;
+      max-width: 430px;
+      padding: 14px 14px 22px;
+    }
+    header {
+      text-align: center;
+      font-weight: 800;
+      letter-spacing: .14em;
+      margin: 10px 0 14px;
+    }
+    .camera {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 3 / 4;
+      background: #000;
+      border-radius: 18px;
+      overflow: hidden;
+    }
+    video, canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .hint {
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:18px;
+      background:rgba(0,0,0,.55);
+      font-weight:600;
+      z-index:4;
+    }
+    .controls {
+      display:flex;
+      gap:10px;
+      justify-content:center;
+      margin:14px 0 8px;
+    }
+    button {
+      appearance:none;
+      border:none;
+      border-radius:999px;
+      padding:12px 16px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .primary { background:#fff; color:#000; }
+    .secondary { background:#232330; color:#fff; }
+    .filters {
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-top:8px;
+    }
+    .filter {
+      background:#232330;
+      color:#fff;
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:13px;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+  </style>
 </head>
-
 <body>
-<div class="app">
-<header>FAN PHOTO BOOTH</header>
+  <div class="app">
+    <header>FAN PHOTO BOOTH</header>
 
-<div class="camera">
-<div id="countdown">3</div>
-<video id="video" autoplay playsinline></video>
-<canvas id="canvas"></canvas>
-</div>
+    <div class="camera">
+      <!-- IMPORTANT FOR iOS -->
+      <video id="video" playsinline muted autoplay></video>
+      <canvas id="canvas"></canvas>
+      <div id="hint" class="hint">Tap “Enable Camera” to start</div>
+    </div>
 
-<div class="controls">
-<button id="snap">Take Photo</button>
-<button id="download">Download PNG</button>
-<button id="downloadVideo">Download MP4</button>
-</div>
+    <div class="controls">
+      <button id="enable" class="primary">Enable Camera</button>
+      <button id="snap" class="secondary">Take Photo</button>
+    </div>
 
-<div class="filters">
-<div class="filter" data-filter="none">downtown</div>
-<div class="filter" data-filter="grayscale(1)">arrhythmia</div>
-<div class="filter" data-filter="sepia(1)">15 rootbeers</div>
-<div class="filter" data-filter="contrast(1.4)">senior year</div>
-<div class="filter" data-filter="brightness(1.2)">funny how the universe works</div>
-<div class="filter" data-filter="killed">killed my youth (limited)</div>
-</div>
+    <div class="filters">
+      <div class="filter" data-filter="none">downtown</div>
+      <div class="filter" data-filter="grayscale(1)">arrhythmia</div>
+      <div class="filter" data-filter="sepia(1)">15 rootbeers</div>
+      <div class="filter" data-filter="contrast(1.35)">senior year</div>
+      <div class="filter" data-filter="brightness(1.15)">funny how the universe works</div>
+      <div class="filter" data-filter="killed">killed my youth (limited)</div>
+    </div>
+  </div>
 
-<div class="colors" id="colors"></div>
+  <script>
+    // ===== iOS-SAFE CAMERA BOOTSTRAP =====
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const hint = document.getElementById('hint');
+    const enableBtn = document.getElementById('enable');
+    const snapBtn = document.getElementById('snap');
 
-<div class="strip" id="strip">
-  <div id="editLayer"></div>
-</div>
+    let stream = null;
+    let currentFilter = 'none';
 
-<div id="stickerTray"></div>
-</div>
+    async function enableCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: 'user',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
+          audio: false
+        });
 
-<script>
-const video=document.getElementById('video')
-const canvas=document.getElementById('canvas')
-const ctx=canvas.getContext('2d')
-const snapBtn=document.getElementById('snap')
-const downloadBtn=document.getElementById('download')
-const downloadVideoBtn=document.getElementById('downloadVideo')
-const strip=document.getElementById('strip')
-const editLayer=document.getElementById('editLayer')
-const countdown=document.getElementById('countdown')
-let shots=[],filter='none',stripColor='#fff'
+        video.srcObject = stream;
+        await video.play(); // REQUIRED on iOS
+        hint.style.display = 'none';
+      } catch (err) {
+        hint.textContent = 'Camera blocked. Check Safari > Camera permissions.';
+        console.error(err);
+      }
+    }
 
-navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}}).then(s=>video.srcObject=s)
+    enableBtn.addEventListener('click', enableCamera);
 
-const colors=['#fff','#f7f1e8','#f4c2d7','#d6c7f5','#8fe3c3','#b7d8c6','#b9d7f5','#9ecbf7','#4f78a6','#1e2a44','#3a2417','#6b1f2b','#111']
-const colorWrap=document.getElementById('colors')
-colors.forEach(c=>{const s=document.createElement('div');s.textContent='★';s.className='star';s.style.color=c;s.onclick=()=>{stripColor=c;document.querySelectorAll('.star').forEach(x=>x.classList.remove('active'));s.classList.add('active')};colorWrap.appendChild(s)})
+    document.querySelectorAll('.filter').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const f = btn.dataset.filter;
+        if (f === 'killed') {
+          currentFilter = 'grayscale(0.6) contrast(1.15) brightness(0.95)';
+        } else {
+          currentFilter = f;
+        }
+        video.style.filter = currentFilter === 'none' ? 'none' : currentFilter;
+      });
+    });
 
-document.querySelectorAll('.filter').forEach(f=>f.onclick=()=>{filter=f.dataset.filter;video.style.filter=filter==='killed'?'grayscale(.6) contrast(1.1)':filter==='none'?'none':filter})
+    snapBtn.addEventListener('click', () => {
+      if (!video.videoWidth) return;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.filter = currentFilter === 'none' ? 'none' : currentFilter;
+      ctx.drawImage(video, 0, 0);
 
-function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
+      const a = document.createElement('a');
+      a.href = canvas.toDataURL('image/png');
+      a.download = 'runarounds-photo.png';
+      a.click();
+    });
 
-snapBtn.onclick=async()=>{
-shots=[];strip.innerHTML='<div id="editLayer"></div>'
-for(let i=0;i<4;i++){countdown.style.display='flex';countdown.textContent=3-i;await sleep(700);countdown.style.display='none';canvas.width=video.videoWidth;canvas.height=video.videoHeight;ctx.filter=filter==='killed'?'grayscale(.6) contrast(1.1)':filter;ctx.drawImage(video,0,0);shots.push(canvas.toDataURL())}
-buildStrip()}
-
-function buildStrip(){
-const sc=document.createElement('canvas'),sctx=sc.getContext('2d')
-const imgs=shots.map(src=>{let i=new Image();i.src=src;return i})
-imgs[0].onload=()=>{
-const w=imgs[0].width,h=imgs[0].height,g=20
-sc.width=w;sc.height=h*4+g*5+120
-sctx.fillStyle=stripColor;sctx.fillRect(0,0,sc.width,sc.height)
-imgs.forEach((img,i)=>sctx.drawImage(img,0,g+(h+g)*i))
-sctx.fillStyle=stripColor==='#fff'?'#111':'#fff';sctx.textAlign='center';sctx.font='18px monospace'
-sctx.fillText('i went to the runarounds tour',w/2,sc.height-50)
-canvas.width=sc.width;canvas.height=sc.height;ctx.drawImage(sc,0,0)
-const img=document.createElement('img');img.src=canvas.toDataURL();strip.appendChild(img)
-setupStickers()
-}
-}
-
-function setupStickers(){
-editLayer.innerHTML=''
-editLayer.style.pointerEvents='auto'
-}
-
-// TRANSPARENT PNG STICKERS
-const stickerTray=document.getElementById('stickerTray')
-const stickers=[
-  {src:'stickers/runarounds.png',color:true},
-  {src:'stickers/star.png',color:true},
-  {src:'stickers/guitar.png',color:true},
-  {src:'stickers/drumsticks.png',color:true},
-  {src:'stickers/mic.png',color:true}
-]
-
-stickers.forEach(st=>{const img=document.createElement('img');img.src=st.src;img.onclick=()=>addSticker(st);stickerTray.appendChild(img)})
-
-function addSticker(st){
-const el=document.createElement('img')
-el.src=st.src
-el.className='sticker'
-el.dataset.color=st.color
-el.dataset.bw=true
-el.style.left='50%'
-el.style.top='50%'
-el.style.transform='translate(-50%,-50%) scale(1) rotate(0deg)'
-let scale=1,rotation=0,startDist,startAngle,startScale,startRotation,lastTap=0
-
-// tap toggles color / bw
-el.onclick=()=>{
-  if(el.dataset.bw==='true'){el.style.filter='none';el.dataset.bw='false'}
-  else{el.style.filter='grayscale(1)';el.dataset.bw='true'}
-}
-
-el.ontouchstart=e=>{
-const now=Date.now()
-if(now-lastTap<300){el.remove();return}
-lastTap=now
-if(e.touches.length===2){startDist=getDist(e.touches);startAngle=getAngle(e.touches);startScale=scale;startRotation=rotation}
-}
-
-el.ontouchmove=e=>{
-e.preventDefault()
-if(e.touches.length===2){
-scale=startScale*(getDist(e.touches)/startDist)
-rotation=startRotation+(getAngle(e.touches)-startAngle)
-el.style.transform=`translate(-50%,-50%) scale(${scale}) rotate(${rotation}deg)`
-}
-}
-
-// snap to corners on release
-el.ontouchend=()=>{
-const rect=strip.getBoundingClientRect()
-const sRect=el.getBoundingClientRect()
-const snap=20
-let x=parseFloat(el.style.left)
-let y=parseFloat(el.style.top)
-if(x<snap)x=0
-if(y<snap)y=0
-if(rect.width-(sRect.right-rect.left)<snap)x=rect.width-40
-if(rect.height-(sRect.bottom-rect.top)<snap)y=rect.height-40
-el.style.left=x+'px'
-el.style.top=y+'px'
-}
-
-editLayer.appendChild(el)
-}
-}
-
-function getDist(t){return Math.hypot(t[1].clientX-t[0].clientX,t[1].clientY-t[0].clientY)}
-function getAngle(t){return Math.atan2(t[1].clientY-t[0].clientY,t[1].clientX-t[0].clientX)*(180/Math.PI)}
-
-// MP4 EXPORT
-let mediaRecorder,recordedChunks=[]
-
-downloadVideoBtn.onclick=()=>{
-const stream=canvas.captureStream(30)
-mediaRecorder=new MediaRecorder(stream,{mimeType:'video/webm'})
-recordedChunks=[]
-mediaRecorder.ondataavailable=e=>recordedChunks.push(e.data)
-mediaRecorder.onstop=()=>{
-const blob=new Blob(recordedChunks,{type:'video/webm'})
-const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='runarounds-strip.webm';a.click()}
-mediaRecorder.start()
-setTimeout(()=>mediaRecorder.stop(),2000)
-}
-
-downloadBtn.onclick=()=>{const a=document.createElement('a');a.download='runarounds-strip.png';a.href=canvas.toDataURL();a.click()}
-</script>
+    // Safety: stop camera when leaving page
+    window.addEventListener('pagehide', () => {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+    });
+  </script>
 </body>
 </html>
-
-
