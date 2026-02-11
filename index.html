@@ -121,12 +121,41 @@
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
+
+    // ===== FILM EFFECTS =====
+    function applyGrain(ctx, w, h, intensity = 12) {
+      const imageData = ctx.getImageData(0, 0, w, h);
+      for (let i = 0; i < imageData.data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * intensity;
+        imageData.data[i] += noise;
+        imageData.data[i + 1] += noise;
+        imageData.data[i + 2] += noise;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+
+    function applyScratches(ctx, w, h, amount = 6) {
+      ctx.save();
+      ctx.globalAlpha = 0.08;
+      ctx.strokeStyle = '#fff';
+      for (let i = 0; i < amount; i++) {
+        const x = Math.random() * w;
+        ctx.lineWidth = Math.random() * 1.2 + 0.3;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x + Math.random() * 2 - 1, h);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     const hint = document.getElementById('hint');
     const enableBtn = document.getElementById('enable');
     const snapBtn = document.getElementById('snap');
 
     let stream = null;
     let currentFilter = 'none';
+    let shots = [];
+    const MAX_SHOTS = 4;
 
     async function enableCamera() {
       try {
@@ -164,10 +193,24 @@
 
     snapBtn.addEventListener('click', () => {
       if (!video.videoWidth) return;
+
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
+
       ctx.filter = currentFilter === 'none' ? 'none' : currentFilter;
       ctx.drawImage(video, 0, 0);
+
+      applyGrain(ctx, canvas.width, canvas.height, currentFilter.includes('grayscale') ? 22 : 14);
+      applyScratches(ctx, canvas.width, canvas.height, currentFilter.includes('grayscale') ? 8 : 4);
+
+      shots.push(canvas.toDataURL('image/png'));
+
+      if (shots.length === MAX_SHOTS) {
+        renderStrip();
+      }
+    });
+      applyGrain(ctx, canvas.width, canvas.height, currentFilter.includes('grayscale') ? 22 : 14);
+      applyScratches(ctx, canvas.width, canvas.height, currentFilter.includes('grayscale') ? 8 : 4);
 
       const a = document.createElement('a');
       a.href = canvas.toDataURL('image/png');
@@ -176,8 +219,33 @@
     });
 
     // Safety: stop camera when leaving page
+    function renderStrip() {
+      const strip = document.createElement('canvas');
+      const sw = canvas.width;
+      const sh = canvas.height;
+      strip.width = sw;
+      strip.height = sh * MAX_SHOTS;
+      const sctx = strip.getContext('2d');
+
+      shots.forEach((src, i) => {
+        const img = new Image();
+        img.onload = () => {
+          sctx.drawImage(img, 0, sh * i, sw, sh);
+          if (i === shots.length - 1) {
+            const a = document.createElement('a');
+            a.href = strip.toDataURL('image/png');
+            a.download = 'runarounds-strip.png';
+            a.click();
+            shots = [];
+          }
+        };
+        img.src = src;
+      });
+    }
+
     window.addEventListener('pagehide', () => {
       if (stream) stream.getTracks().forEach(t => t.stop());
+    });
     });
   </script>
 </body>
